@@ -4,46 +4,53 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Function to extract text from PDF
+# -------- Function to extract text from PDF --------
 def extract_text_from_pdf(file):
-    pdf = PdfReader(file)
     text = ""
-    for page in pdf.pages:
-        text += page.extract_text()
+    try:
+        pdf = PdfReader(file)
+        for page in pdf.pages:
+            content = page.extract_text()
+            if content:  # Avoid None values
+                text += content
+    except Exception as e:
+        st.error(f"Error reading {file.name}: {e}")
     return text
 
-# Combine job description with resumes
-# Function to rank resumes based on job description
+
+# -------- Function to rank resumes --------
 def rank_resumes(job_description, resumes):
-    # Combine job description with resumes
+    # Combine job description and resumes
     documents = [job_description] + resumes
-    vectorizer = TfidfVectorizer().fit_transform(documents)
-    vectors = vectorizer.toarray()
 
-    # Calculate cosine similarity
-    job_description_vector = vectors[0]
+    # Convert text to TF-IDF vectors
+    vectorizer = TfidfVectorizer(stop_words="english")
+    vectors = vectorizer.fit_transform(documents).toarray()
+
+    # Compute cosine similarity
+    job_vector = vectors[0]
     resume_vectors = vectors[1:]
-    cosine_similarities = cosine_similarity([job_description_vector], resume_vectors).flatten()
+    similarities = cosine_similarity([job_vector], resume_vectors).flatten()
 
-    return cosine_similarities
-    job_description_vector = vectors[0]
-    resume_vectors = vectors [1:]
-    cosine_similarities = cosine_similarity ([job_description_vector], resume_vectors).flatten()
+    return similarities
 
-    return cosine_similarities
 
-# Streamlit app
-st.title("AI Resume Screening & Candidate Ranking System")
+# -------- Streamlit App --------
+st.title("📄 AI Resume Screening & Candidate Ranking System")
+
 # Job description input
 st.header("Job Description")
-job_description= st.text_area ("Enter the job description")
+job_description = st.text_area("Enter the job description")
 
 # File uploader
 st.header("Upload Resumes")
-uploaded_files = st.file_uploader("Upload PDF files", type=["pdf"], accept_multiple_files=True)
+uploaded_files = st.file_uploader(
+    "Upload PDF files", type=["pdf"], accept_multiple_files=True
+)
 
+# Process resumes
 if uploaded_files and job_description:
-    st.header("Ranking Resumes")
+    st.header("📊 Ranking Resumes")
 
     resumes = []
     for file in uploaded_files:
@@ -53,8 +60,14 @@ if uploaded_files and job_description:
     # Rank resumes
     scores = rank_resumes(job_description, resumes)
 
-    # Display scores
-    results = pd.DataFrame({"Resume": [file.name for file in uploaded_files], "Score": score })
+    # Create results table
+    results = pd.DataFrame({
+        "Resume": [file.name for file in uploaded_files],
+        "Score": scores
+    })
+
+    # Sort results
     results = results.sort_values(by="Score", ascending=False)
 
+    # Display results
     st.write(results)
