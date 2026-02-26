@@ -162,5 +162,6 @@ streamlit run resumeranking.py
 
 ---
 
-**Khushi Dasar**
-B.Tech CSE (AI & ML)
+## ⭐ If you like this project
+
+Give it a ⭐ on GitHub and share your feedback!
